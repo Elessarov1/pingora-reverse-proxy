@@ -16,7 +16,7 @@ impl ProxyHttp for ReverseProxy {
 
     fn new_ctx(&self) -> Self::CTX {}
 
-    async fn upstream_peer(&self, session: &mut Session, ctx: &mut Self::CTX) -> pingora_core::Result<Box<HttpPeer>> {
+    async fn upstream_peer(&self, session: &mut Session, _ctx: &mut Self::CTX) -> pingora_core::Result<Box<HttpPeer>> {
         log_request(&session);
         Ok(Box::from(HttpPeer::new(&self.backend, false, String::from(""))))
     }
@@ -26,7 +26,7 @@ fn log_request(session: &Session) {
     let method = &session.req_header().method;
     let uri = &session.req_header().uri;
     let version = &session.req_header().version;
-    let client_ip = &session.client_addr().unwrap();
+    let client_ip = &session.client_addr().map(|a| a.to_string()).unwrap_or_else(|| "<unknown>".to_string());
 
     log::info!(
         "New request from {}: {} {} {:?}",
@@ -42,7 +42,7 @@ fn log_request(session: &Session) {
 }
 
 fn main() {
-    env_logger::init();
+    env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info")).init();
     let config = ProxyConfig::load_from_file("proxy-config.toml");
 
     let mut server = Server::new(None).unwrap();
